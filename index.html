@@ -1,0 +1,929 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>🥨 Плюшечная</title>
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <style>
+        /* Шрифты и базовые настройки */
+        @font-face {
+            font-family: 'Famosa';
+            src: local('Famosa'), local('Playfair Display'), local('Georgia');
+        }
+
+        :root {
+            --glass-bg: rgba(235, 215, 185, 0.25);
+            --glass-border: rgba(255, 255, 255, 0.3);
+            --text-main: #3e2723;
+            --text-muted: #5d4037;
+            --accent: #d84315;
+            --bg-image: url('https://images.unsplash.com/photo-1508739773402-385ee9193259?q=80&w=1920&auto=format&fit=crop');
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Famosa', serif;
+        }
+
+        body {
+            height: 100vh;
+            background-image: var(--bg-image);
+            background-size: cover;
+            background-position: center;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+            color: var(--text-main);
+            transition: background-image 0.5s ease;
+        }
+
+        /* Звезды */
+        .stars {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none; z-index: 0;
+        }
+        .star {
+            position: absolute; background: white; border-radius: 50%;
+            animation: twinkle infinite alternate; opacity: 0.1;
+        }
+        @keyframes twinkle {
+            0% { opacity: 0.1; transform: scale(0.8); }
+            100% { opacity: 0.8; transform: scale(1.2); box-shadow: 0 0 5px white; }
+        }
+
+        /* Матовое стекло */
+        .glass {
+            background: var(--glass-bg);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid var(--glass-border);
+            border-radius: 20px;
+            box-shadow: 0 8px 32px 0 rgba(62, 39, 35, 0.3);
+        }
+
+        /* Авторизация */
+        #login-screen {
+            position: absolute; z-index: 100; width: 90%; max-width: 400px;
+            padding: 30px; text-align: center; display: flex; flex-direction: column; gap: 15px;
+        }
+        #login-screen h1 { margin-bottom: 10px; color: var(--text-main); font-size: 28px;}
+        .warning { font-size: 12px; color: #b71c1c; background: rgba(255,255,255,0.5); padding: 8px; border-radius: 8px;}
+        input[type="text"], input[type="password"] {
+            width: 100%; padding: 12px; border-radius: 10px; border: 1px solid var(--glass-border);
+            background: rgba(255,255,255,0.4); color: var(--text-main); font-size: 16px; outline: none;
+        }
+        .color-picker { display: flex; justify-content: center; gap: 10px; margin: 10px 0; flex-wrap: wrap;}
+        .color-dot { width: 25px; height: 25px; border-radius: 50%; cursor: pointer; border: 2px solid transparent;}
+        .color-dot.active { border-color: var(--text-main); transform: scale(1.1);}
+        button {
+            padding: 12px; border: none; border-radius: 10px;
+            background: rgba(62, 39, 35, 0.7); color: white;
+            font-size: 16px; cursor: pointer; transition: 0.3s;
+        }
+        button:hover { background: rgba(62, 39, 35, 0.9); }
+
+        /* Основной интерфейс */
+        #app {
+            display: none; width: 95%; max-width: 1200px; height: 90vh;
+            z-index: 10; overflow: hidden;
+        }
+
+        /* Боковая панель */
+        .sidebar {
+            width: 280px; border-right: 1px solid var(--glass-border);
+            display: flex; flex-direction: column; padding: 20px;
+        }
+        .sidebar h2 { 
+            font-size: 20px; margin-bottom: 15px; display: flex; 
+            justify-content: space-between; align-items: center;
+        }
+        .header-icons-user { display: flex; gap: 10px; align-items: center; }
+        .section { flex: 1; overflow-y: auto; margin-bottom: 10px; }
+        .item { 
+            padding: 10px; border-radius: 10px; margin-bottom: 5px; cursor: pointer;
+            display: flex; justify-content: space-between; align-items: center; transition: 0.2s;
+        }
+        .item:hover, .item.active { background: rgba(255,255,255,0.3); }
+        .user-name { font-weight: bold; text-shadow: 0 0 1px rgba(255,255,255,0.5); }
+        .online-dot { width: 8px; height: 8px; background: #4caf50; border-radius: 50%; display: inline-block; margin-left: 5px;}
+        .badge { background: var(--accent); color: white; font-size: 10px; padding: 2px 6px; border-radius: 10px; }
+        
+        /* Иконки владельца */
+        .crown-icon { color: #fbc02d; margin-left: 5px; font-size: 16px; }
+        .promote-btn { color: var(--text-muted); opacity: 0.4; cursor: pointer; margin-left: 5px; transition: 0.2s; font-size: 16px; }
+        .promote-btn:hover { opacity: 1; color: #fbc02d; }
+
+        /* Чат */
+        .chat-area {
+            flex: 1; display: flex; flex-direction: column; position: relative;
+        }
+        .chat-header {
+            padding: 20px; border-bottom: 1px solid var(--glass-border);
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .header-actions i { cursor: pointer; font-size: 20px; margin-left: 15px;}
+        
+        .pinned-message {
+            background: rgba(255,255,255,0.4); padding: 10px 20px;
+            font-size: 14px; border-bottom: 1px solid var(--glass-border);
+            display: none; align-items: center; gap: 10px;
+        }
+        #pinned-text {
+            flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer;
+        }
+        #pinned-text:hover { text-decoration: underline; }
+
+        .messages {
+            flex: 1; padding: 20px; overflow-y: auto; scroll-behavior: smooth;
+            display: flex; flex-direction: column; gap: 15px;
+        }
+        .message {
+            width: 100%; /* Фиксированная ширина на всю длину чата */
+            padding: 12px 16px; border-radius: 15px;
+            background: rgba(255, 255, 255, 0.85); /* Полупрозрачный белый */
+            align-self: flex-start; /* Все сообщения слева */
+            position: relative; transition: all 0.3s ease;
+        }
+        
+        .message.mine { 
+            background: rgba(245, 245, 245, 0.95); /* Чуть более плотный бело-серый оттенок для своих */
+        }
+        
+        /* Подсветки сообщений */
+        .message.highlight { border: 2px solid var(--accent); box-shadow: 0 0 10px rgba(216, 67, 21, 0.3); }
+        
+        /* Выделение при ответе - БЕЛОЕ */
+        .message.is-being-replied { 
+            border: 2px dashed #ffffff; 
+            box-shadow: 0 0 15px rgba(255, 255, 255, 0.8); 
+            transform: scale(1.01); 
+        }
+        
+        /* Мигание при клике на ответ - БЕЛОЕ */
+        @keyframes flashHighlight {
+            0%, 100% { box-shadow: none; filter: brightness(1); }
+            50% { box-shadow: 0 0 25px rgba(255, 255, 255, 1); filter: brightness(1.1); }
+        }
+        .message.flash-highlight { animation: flashHighlight 1.5s ease-in-out; border: 2px solid #ffffff; }
+
+        .msg-header { display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 5px; gap: 15px;}
+        .msg-name { font-weight: bold; cursor: pointer; text-shadow: 0 0 1px rgba(255,255,255,0.5); }
+        .hashtag { color: var(--accent); cursor: pointer; font-weight: bold; }
+        
+        .msg-actions {
+            position: absolute; top: -15px; right: 10px;
+            background: var(--glass-bg); backdrop-filter: blur(5px);
+            padding: 5px; border-radius: 10px; border: 1px solid var(--glass-border);
+            display: none; gap: 8px; font-size: 16px; cursor: pointer; z-index: 5;
+        }
+        .message:hover .msg-actions { display: flex; }
+
+        .reply-quote {
+            font-size:11px; color:var(--text-muted); border-left: 2px solid var(--accent); 
+            padding-left: 5px; margin-bottom: 5px; cursor: pointer;
+            background: rgba(255,255,255,0.2); padding: 5px; border-radius: 0 5px 5px 0;
+            transition: background 0.2s;
+        }
+        .reply-quote:hover { background: rgba(255,255,255,0.5); }
+
+        /* Эмодзи и реакции */
+        .reactions { display: flex; gap: 5px; margin-top: 5px; font-size: 12px; flex-wrap: wrap; }
+        .reaction { 
+            background: rgba(255,255,255,0.5); padding: 3px 8px; 
+            border-radius: 12px; cursor: pointer; border: 1px solid transparent;
+            display: flex; align-items: center; gap: 4px;
+        }
+        .reaction.active { border-color: var(--accent); background: rgba(255,255,255,0.8); }
+        
+        #emoji-picker {
+            position: absolute; display: none; background: var(--glass-bg);
+            backdrop-filter: blur(10px); border: 1px solid var(--glass-border);
+            border-radius: 10px; padding: 10px; gap: 10px; z-index: 50;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+        .emoji-btn { cursor: pointer; font-size: 18px; transition: transform 0.1s;}
+        .emoji-btn:hover { transform: scale(1.3); }
+
+        .input-area {
+            padding: 20px; border-top: 1px solid var(--glass-border);
+            display: flex; flex-direction: column; gap: 5px; background: rgba(255,255,255,0.1);
+        }
+        .input-row { display: flex; gap: 10px; align-items: center; width: 100%;}
+        #reply-indicator { display: none; width: 100%; padding: 5px 20px; background: rgba(255,255,255,0.3); font-size: 12px; justify-content: space-between;}
+        textarea {
+            flex: 1; padding: 12px; border-radius: 15px; border: 1px solid var(--glass-border);
+            background: rgba(255,255,255,0.5); outline: none; resize: none; height: 50px;
+            color: var(--text-main); font-size: 16px;
+        }
+        .input-hint { font-size: 11px; color: var(--text-muted); text-align: right; padding-right: 50px;}
+        .icon-btn {
+            background: none; border: none; color: var(--text-main);
+            font-size: 24px; cursor: pointer; padding: 5px;
+        }
+
+        /* Модальные окна */
+        .modal {
+            display: none; position: absolute; top:0; left:0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.5); justify-content: center; align-items: center; z-index: 200;
+        }
+        .modal-content { width: 300px; padding: 20px; display: flex; flex-direction: column; gap: 15px; }
+
+        @media (max-width: 768px) {
+            #app { width: 100%; height: 100vh; border-radius: 0; flex-direction: column; }
+            .sidebar { width: 100%; height: 35%; border-right: none; border-bottom: 1px solid var(--glass-border); }
+            .chat-area { height: 65%; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="stars" id="stars-container"></div>
+
+    <!-- Всплывающее меню эмодзи -->
+    <div id="emoji-picker">
+        <span class="emoji-btn" onclick="selectEmoji('👍')">👍</span>
+        <span class="emoji-btn" onclick="selectEmoji('❤️')">❤️</span>
+        <span class="emoji-btn" onclick="selectEmoji('😂')">😂</span>
+        <span class="emoji-btn" onclick="selectEmoji('😮')">😮</span>
+        <span class="emoji-btn" onclick="selectEmoji('😢')">😢</span>
+        <span class="emoji-btn" onclick="selectEmoji('🥨')">🥨</span>
+    </div>
+
+    <!-- Экран входа -->
+    <div id="login-screen" class="glass">
+        <h1>🥨 Плюшечная</h1>
+        <div class="warning">
+            <i class="ph ph-warning-circle"></i> Внимание! Имя нельзя будет изменить.
+        </div>
+        <input type="text" id="username-input" placeholder="Введите ваше имя...">
+        <p style="font-size: 14px; text-align: left;">Выберите цвет имени:</p>
+        <div class="color-picker" id="color-picker"></div>
+        <input type="color" id="custom-color" title="Свой цвет" style="background: none; border: none; cursor: pointer;">
+        <button onclick="login()">Войти в Плюшечную</button>
+    </div>
+
+    <!-- Главное окно чата -->
+    <div id="app" class="glass">
+        <div class="sidebar">
+            <h2 style="font-family: 'Famosa';">
+                🥨 Плюшечная 
+                <div class="header-icons-user">
+                    <label for="in-chat-color" style="cursor:pointer;" title="Сменить цвет имени">
+                        <i class="ph ph-paint-brush"></i>
+                    </label>
+                    <input type="color" id="in-chat-color" style="display:none;" onchange="changeMyColor(event)">
+                    <i class="ph ph-sign-out" onclick="logout()" style="cursor: pointer;" title="Выйти"></i>
+                </div>
+            </h2>
+            
+            <div style="display:flex; justify-content: space-between; align-items: center; margin-top: 10px;">
+                <h3>Разделы</h3>
+                <i class="ph ph-plus-circle icon-btn" id="btn-add-room" onclick="showModal('room-modal')" style="display:none; font-size: 20px;"></i>
+            </div>
+            <div class="section" id="rooms-list"></div>
+
+            <h3>Пользователи</h3>
+            <div class="section" id="users-list"></div>
+        </div>
+
+        <div class="chat-area">
+            <div class="chat-header">
+                <h3 id="current-room-name"># общая</h3>
+                <div class="header-actions">
+                    <i class="ph ph-broom" id="btn-clear-chat" onclick="clearChat()" title="Очистить чат" style="display: none;"></i>
+                    <i class="ph ph-palette" id="btn-settings" onclick="showModal('settings-modal')" title="Настройки фона" style="display: none;"></i>
+                </div>
+            </div>
+
+            <div class="pinned-message" id="pinned-container">
+                <i class="ph ph-push-pin" style="color: var(--accent);"></i>
+                <span id="pinned-text" onclick="scrollToPinned()" title="Перейти к сообщению"></span>
+                <i class="ph ph-x" style="cursor: pointer;" onclick="unpinMessage()"></i>
+            </div>
+
+            <div class="messages" id="chat-messages" onclick="closeEmojiPicker()">
+                <!-- Сообщения -->
+            </div>
+
+            <div id="reply-indicator">
+                <span>Ответ: <strong id="reply-to-name"></strong></span>
+                <i class="ph ph-x" style="cursor: pointer;" onclick="cancelReply()"></i>
+            </div>
+
+            <div class="input-area">
+                <div class="input-row">
+                    <textarea id="message-input" placeholder="Написать сообщение... (#хештег, @имя)"></textarea>
+                    <button class="icon-btn" onclick="sendMessage()"><i class="ph ph-paper-plane-right"></i></button>
+                </div>
+                <div class="input-hint">Отправить: Ctrl + Enter</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Модалки -->
+    <div id="room-modal" class="modal">
+        <div class="glass modal-content">
+            <h3>Создать раздел</h3>
+            <input type="text" id="new-room-name" placeholder="Название раздела">
+            <label style="font-size: 14px; cursor:pointer;">
+                <input type="checkbox" id="is-private"> Закрытый раздел
+            </label>
+            <input type="password" id="new-room-pass" placeholder="Придумайте пароль" style="display: none;">
+            <div style="display: flex; gap: 10px;">
+                <button onclick="createRoom()" style="flex:1;">Создать</button>
+                <button onclick="closeModal('room-modal')" style="flex:1; background: gray;">Отмена</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="pass-modal" class="modal">
+        <div class="glass modal-content">
+            <h3>Доступ закрыт</h3>
+            <p style="font-size:14px;">Введите пароль от закрытого раздела:</p>
+            <input type="password" id="room-enter-pass" placeholder="Пароль">
+            <div style="display: flex; gap: 10px;">
+                <button onclick="checkPassword()" style="flex:1;">Войти</button>
+                <button onclick="closeModal('pass-modal')" style="flex:1; background: gray;">Отмена</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="settings-modal" class="modal">
+        <div class="glass modal-content">
+            <h3>Настройки чата</h3>
+            <p style="font-size: 14px;">URL картинки фона:</p>
+            <input type="text" id="bg-url-input" placeholder="https://...">
+            <div style="display: flex; gap: 10px; margin-top: 10px;">
+                <button onclick="changeBackground()" style="flex:1;">Применить</button>
+                <button onclick="closeModal('settings-modal')" style="flex:1; background: gray;">Отмена</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const colors = ['#5d4037', '#d84315', '#2e7d32', '#1565c0', '#6a1b9a', '#c2185b'];
+        let currentUser = null;
+        let currentRoomId = 'general';
+        let replyingToId = null;
+        let editingId = null;
+        let attemptingRoomId = null;
+        let reactingToMsgId = null;
+        
+        const OWNER_NAME = "Грэйс Грейлэнд";
+
+        let db = {
+            users: [],
+            rooms: [{ id: 'general', name: 'Общая', isPrivate: false, password: '' }],
+            messages: [],
+            pinnedMessageId: null,
+            background: ''
+        };
+
+        window.onload = () => {
+            initStars();
+            loadDb(); 
+            renderColorPicker();
+            
+            const savedUser = localStorage.getItem('chatUser');
+            if (savedUser) {
+                currentUser = JSON.parse(savedUser);
+                currentUser.isOnline = true;
+                updateUserInDb(currentUser);
+                checkOwnerStatusSync(); // Проверяем, не назначили ли нас владельцем пока мы были оффлайн
+                showApp();
+            }
+
+            window.addEventListener('beforeunload', () => {
+                if (currentUser) {
+                    currentUser.isOnline = false;
+                    updateUserInDb(currentUser);
+                }
+            });
+
+            window.addEventListener('storage', () => {
+                loadDb();
+                if(currentUser) {
+                    checkOwnerStatusSync();
+                    renderApp();
+                }
+            });
+
+            document.getElementById('username-input').addEventListener('input', (e) => {
+                const typedName = e.target.value.trim().toLowerCase();
+                const existingUser = db.users.find(u => u.name.toLowerCase() === typedName);
+                if(existingUser) {
+                    let colorFound = false;
+                    document.querySelectorAll('.color-dot').forEach(dot => {
+                        if(dot.dataset.color === existingUser.color) {
+                            selectColor(dot, existingUser.color);
+                            colorFound = true;
+                        }
+                    });
+                    if(!colorFound) {
+                        document.getElementById('custom-color').value = existingUser.color;
+                        selectColor(null, existingUser.color);
+                    }
+                }
+            });
+
+            document.getElementById('is-private').addEventListener('change', (e) => {
+                document.getElementById('new-room-pass').style.display = e.target.checked ? 'block' : 'none';
+            });
+            
+            document.getElementById('message-input').addEventListener('keydown', (e) => {
+                if(e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { 
+                    e.preventDefault(); 
+                    sendMessage(); 
+                }
+            });
+        };
+
+        function initStars() {
+            const container = document.getElementById('stars-container');
+            for(let i=0; i<30; i++) {
+                let star = document.createElement('div');
+                star.className = 'star';
+                star.style.left = Math.random() * 100 + '%';
+                star.style.top = Math.random() * 100 + '%';
+                star.style.width = Math.random() * 3 + 1 + 'px';
+                star.style.height = star.style.width;
+                star.style.animationDelay = Math.random() * 5 + 's';
+                container.appendChild(star);
+            }
+        }
+
+        function applyBackground(url) {
+            if(url) {
+                document.body.style.backgroundImage = `url('${url}')`;
+            } else {
+                document.body.style.backgroundImage = "var(--bg-image)";
+            }
+        }
+
+        function loadDb() {
+            const saved = localStorage.getItem('chatDb');
+            if (saved) {
+                db = JSON.parse(saved);
+                applyBackground(db.background);
+            }
+        }
+
+        function saveDb() {
+            localStorage.setItem('chatDb', JSON.stringify(db));
+        }
+
+        function updateUserInDb(user) {
+            let index = db.users.findIndex(u => u.name === user.name);
+            if(index >= 0) db.users[index] = user;
+            else db.users.push(user);
+            saveDb();
+        }
+
+        // Проверка синхронизации статуса владельца
+        function checkOwnerStatusSync() {
+            let dbUser = db.users.find(u => u.name === currentUser.name);
+            if (dbUser && dbUser.isOwner !== currentUser.isOwner) {
+                currentUser.isOwner = dbUser.isOwner;
+                localStorage.setItem('chatUser', JSON.stringify(currentUser));
+                toggleOwnerUI();
+            }
+        }
+
+        function toggleOwnerUI() {
+            if(currentUser.isOwner) {
+                document.getElementById('btn-add-room').style.display = 'block';
+                document.getElementById('btn-clear-chat').style.display = 'block';
+                document.getElementById('btn-settings').style.display = 'block';
+            } else {
+                document.getElementById('btn-add-room').style.display = 'none';
+                document.getElementById('btn-clear-chat').style.display = 'none';
+                document.getElementById('btn-settings').style.display = 'none';
+            }
+        }
+
+        function renderColorPicker() {
+            const container = document.getElementById('color-picker');
+            colors.forEach(color => {
+                let dot = document.createElement('div');
+                dot.className = 'color-dot';
+                dot.style.background = color;
+                dot.dataset.color = color; // Сохраняем код цвета в атрибут
+                dot.onclick = () => selectColor(dot, color);
+                container.appendChild(dot);
+            });
+            if(container.firstChild) selectColor(container.firstChild, colors[0]);
+
+            document.getElementById('custom-color').addEventListener('input', (e) => selectColor(null, e.target.value));
+        }
+
+        let selectedColor = colors[0];
+        function selectColor(element, color) {
+            document.querySelectorAll('.color-dot').forEach(d => d.classList.remove('active'));
+            if(element) element.classList.add('active');
+            selectedColor = color;
+        }
+
+        function login() {
+            const name = document.getElementById('username-input').value.trim();
+            if(!name) return alert('Введите имя!');
+
+            const existing = db.users.find(u => u.name.toLowerCase() === name.toLowerCase());
+            if(existing && !localStorage.getItem('chatUser')) return alert('Это имя уже занято (возможно открыто в другой вкладке).');
+
+            currentUser = {
+                name: name,
+                color: selectedColor, 
+                isOwner: existing ? existing.isOwner : (name === OWNER_NAME),
+                isOnline: true,
+                hasAccessTo: existing ? existing.hasAccessTo : ['general']
+            };
+
+            localStorage.setItem('chatUser', JSON.stringify(currentUser));
+            updateUserInDb(currentUser);
+            showApp();
+        }
+
+        function logout() {
+            currentUser.isOnline = false;
+            updateUserInDb(currentUser);
+            localStorage.removeItem('chatUser');
+            location.reload(); 
+        }
+
+        function changeMyColor(event) {
+            const newColor = event.target.value;
+            currentUser.color = newColor;
+            localStorage.setItem('chatUser', JSON.stringify(currentUser));
+            updateUserInDb(currentUser);
+            renderApp(); 
+        }
+
+        // Интерфейс
+        function showApp() {
+            document.getElementById('login-screen').style.display = 'none';
+            document.getElementById('app').style.display = 'flex';
+            toggleOwnerUI();
+            renderApp();
+        }
+
+        function renderApp() {
+            renderRooms();
+            renderUsers();
+            renderMessages();
+        }
+
+        // Разделы
+        function renderRooms() {
+            const container = document.getElementById('rooms-list');
+            container.innerHTML = '';
+            db.rooms.forEach(room => {
+                let div = document.createElement('div');
+                div.className = `item ${room.id === currentRoomId ? 'active' : ''}`;
+                
+                let icon = room.isPrivate ? '<i class="ph ph-lock"></i>' : '<i class="ph ph-hash"></i>';
+                let content = `<span>${icon} ${room.name}</span>`;
+
+                let unreadMentions = db.messages.filter(m => m.roomId === room.id && (m.text.includes('@all') || m.text.includes('@'+currentUser.name))).length;
+                if(unreadMentions > 0 && room.id !== currentRoomId) {
+                    content += `<span class="badge">${unreadMentions}</span>`;
+                }
+
+                if(currentUser.isOwner && room.id !== 'general') {
+                    content += `<i class="ph ph-trash" onclick="deleteRoom('${room.id}', event)" style="color:#b71c1c;" title="Удалить"></i>`;
+                }
+
+                div.innerHTML = content;
+                div.onclick = () => selectRoom(room);
+                container.appendChild(div);
+            });
+        }
+
+        function selectRoom(room) {
+            if(room.id === currentRoomId) return;
+            if(room.isPrivate && !currentUser.isOwner && !currentUser.hasAccessTo.includes(room.id)) {
+                attemptingRoomId = room.id;
+                showModal('pass-modal');
+                return;
+            }
+            currentRoomId = room.id;
+            document.getElementById('current-room-name').innerHTML = `${room.isPrivate ? '<i class="ph ph-lock"></i>' : '<i class="ph ph-hash"></i>'} ${room.name}`;
+            renderApp();
+        }
+
+        function createRoom() {
+            const name = document.getElementById('new-room-name').value.trim();
+            const isPrivate = document.getElementById('is-private').checked;
+            const pass = document.getElementById('new-room-pass').value;
+            if(!name) return;
+            if(isPrivate && !pass) return alert("Введите пароль для закрытого раздела!");
+            
+            const id = 'room_' + Date.now();
+            db.rooms.push({ id, name, isPrivate, password: pass });
+            saveDb();
+            closeModal('room-modal');
+            renderRooms();
+        }
+
+        function deleteRoom(id, event) {
+            event.stopPropagation();
+            if(!confirm('Удалить раздел и всю историю сообщений в нем?')) return;
+            db.rooms = db.rooms.filter(r => r.id !== id);
+            db.messages = db.messages.filter(m => m.roomId !== id);
+            if(currentRoomId === id) currentRoomId = 'general';
+            saveDb();
+            renderApp();
+        }
+
+        function checkPassword() {
+            const pass = document.getElementById('room-enter-pass').value;
+            const room = db.rooms.find(r => r.id === attemptingRoomId);
+            if(room.password === pass) {
+                currentUser.hasAccessTo.push(room.id);
+                localStorage.setItem('chatUser', JSON.stringify(currentUser));
+                closeModal('pass-modal');
+                selectRoom(room);
+            } else {
+                alert('Неверный пароль');
+            }
+        }
+
+        // Пользователи
+        function renderUsers() {
+            const container = document.getElementById('users-list');
+            container.innerHTML = '';
+            db.users.forEach(user => {
+                let div = document.createElement('div');
+                div.className = 'item';
+                
+                let ownerIcon = user.isOwner ? '<i class="ph ph-crown crown-icon" title="Владелец"></i>' : '';
+                let promoteBtn = (currentUser.isOwner && !user.isOwner) ? `<i class="ph ph-crown promote-btn" title="Назначить владельцем" onclick="promoteToOwner('${user.name}', event)"></i>` : '';
+
+                div.innerHTML = `
+                    <div style="display:flex; align-items:center;">
+                        <span class="user-name" style="color:${user.color}" onclick="insertMention('${user.name}')">${user.name}</span>
+                        ${ownerIcon}
+                        ${promoteBtn}
+                    </div>
+                    ${user.isOnline ? '<span class="online-dot" title="Онлайн"></span>' : ''}
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        function promoteToOwner(name, event) {
+            event.stopPropagation();
+            if(!confirm(`Назначить пользователя "${name}" владельцем чата? У него появятся права на удаление разделов и сообщений.`)) return;
+            let user = db.users.find(u => u.name === name);
+            if(user) {
+                user.isOwner = true;
+                saveDb();
+                renderApp();
+            }
+        }
+
+        function insertMention(name) {
+            const input = document.getElementById('message-input');
+            input.value += `@${name} `;
+            input.focus();
+        }
+
+        // Сообщения
+        function sendMessage() {
+            const input = document.getElementById('message-input');
+            let text = input.value.trim();
+            if(!text) return;
+
+            if(editingId) {
+                let msg = db.messages.find(m => m.id === editingId);
+                if(msg) msg.text = text;
+                editingId = null;
+            } else {
+                const msg = {
+                    id: Date.now().toString(),
+                    roomId: currentRoomId,
+                    sender: currentUser.name,
+                    color: currentUser.color,
+                    text: text,
+                    time: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
+                    repliesTo: replyingToId,
+                    reactions: {}
+                };
+                db.messages.push(msg);
+            }
+
+            input.value = '';
+            cancelReply();
+            saveDb();
+            renderMessages();
+            
+            const container = document.getElementById('chat-messages');
+            setTimeout(() => container.scrollTop = container.scrollHeight, 50);
+        }
+
+        function renderMessages() {
+            const container = document.getElementById('chat-messages');
+            const prevScroll = container.scrollTop;
+            const isAtBottom = (container.scrollHeight - container.scrollTop) <= container.clientHeight + 50;
+            
+            container.innerHTML = '';
+            const roomMessages = db.messages.filter(m => m.roomId === currentRoomId);
+            
+            roomMessages.forEach(msg => {
+                let div = document.createElement('div');
+                div.id = `msg-${msg.id}`;
+                div.className = `message ${msg.sender === currentUser.name ? 'mine' : ''}`;
+                
+                if (replyingToId === msg.id) div.classList.add('is-being-replied');
+                if(msg.text.includes(`@${currentUser.name}`) || msg.text.includes('@all')) div.classList.add('highlight');
+
+                let formattedText = msg.text
+                    .replace(/(@[^\s]+)/g, '<span style="color:var(--accent); font-weight:bold;">$1</span>')
+                    .replace(/(#[^\s]+)/g, '<span class="hashtag">$1</span>');
+
+                let replyHtml = '';
+                if(msg.repliesTo) {
+                    const replyMsg = db.messages.find(m => m.id === msg.repliesTo);
+                    if(replyMsg) {
+                        replyHtml = `<div class="reply-quote" onclick="scrollToMessage('${replyMsg.id}')">
+                            Ответ <b>${replyMsg.sender}</b>: ${replyMsg.text.substring(0,30)}...
+                        </div>`;
+                    }
+                }
+
+                let reactionsHtml = '<div class="reactions">';
+                if(msg.reactions) {
+                    for (const [emoji, users] of Object.entries(msg.reactions)) {
+                        const hasMyReaction = users.includes(currentUser.name);
+                        reactionsHtml += `<span class="reaction ${hasMyReaction ? 'active' : ''}" onclick="toggleReaction('${msg.id}', '${emoji}', event)">
+                            ${emoji} <span>${users.length}</span>
+                        </span>`;
+                    }
+                }
+                reactionsHtml += '</div>';
+
+                let actionsHtml = `<div class="msg-actions">
+                    <i class="ph ph-arrow-u-up-left" onclick="startReply('${msg.id}', '${msg.sender}')" title="Ответить"></i>
+                    <i class="ph ph-smiley" onclick="openEmojiPicker('${msg.id}', event)" title="Поставить реакцию"></i>
+                    ${currentUser.isOwner ? `<i class="ph ph-push-pin" onclick="pinMessage('${msg.id}')" title="Закрепить"></i>` : ''}
+                    ${msg.sender === currentUser.name ? `<i class="ph ph-pencil-simple" onclick="startEdit('${msg.id}')" title="Редактировать"></i>` : ''}
+                </div>`;
+
+                let userFromDb = db.users.find(u => u.name === msg.sender);
+                let displayColor = userFromDb ? userFromDb.color : msg.color;
+
+                div.innerHTML = `
+                    ${actionsHtml}
+                    <div class="msg-header">
+                        <span class="msg-name" style="color:${displayColor}" onclick="insertMention('${msg.sender}')">${msg.sender}</span>
+                        <span>${msg.time}</span>
+                    </div>
+                    ${replyHtml}
+                    <div>${formattedText}</div>
+                    ${reactionsHtml}
+                `;
+                container.appendChild(div);
+            });
+
+            if(isAtBottom) container.scrollTop = container.scrollHeight;
+            else container.scrollTop = prevScroll;
+
+            renderPinned();
+        }
+
+        function scrollToMessage(id) {
+            const el = document.getElementById('msg-' + id);
+            if(el) {
+                el.scrollIntoView({behavior: 'smooth', block: 'center'});
+                el.classList.remove('flash-highlight');
+                void el.offsetWidth; 
+                el.classList.add('flash-highlight');
+            }
+        }
+
+        function scrollToPinned() {
+            if(db.pinnedMessageId) {
+                scrollToMessage(db.pinnedMessageId);
+            }
+        }
+
+        function openEmojiPicker(msgId, event) {
+            event.stopPropagation();
+            reactingToMsgId = msgId;
+            const picker = document.getElementById('emoji-picker');
+            picker.style.display = 'flex';
+            
+            const rect = event.target.getBoundingClientRect();
+            picker.style.top = (rect.top + window.scrollY - 50) + 'px';
+            picker.style.left = Math.max(10, rect.left - 100) + 'px';
+        }
+
+        function closeEmojiPicker() {
+            document.getElementById('emoji-picker').style.display = 'none';
+        }
+
+        function selectEmoji(emoji) {
+            if(reactingToMsgId) toggleReaction(reactingToMsgId, emoji);
+            closeEmojiPicker();
+        }
+
+        function toggleReaction(msgId, emoji, event) {
+            if(event) event.stopPropagation();
+            const msg = db.messages.find(m => m.id === msgId);
+            if(!msg) return;
+
+            if(!msg.reactions) msg.reactions = {};
+            if(!msg.reactions[emoji]) msg.reactions[emoji] = [];
+
+            const index = msg.reactions[emoji].indexOf(currentUser.name);
+            if(index > -1) {
+                msg.reactions[emoji].splice(index, 1);
+                if(msg.reactions[emoji].length === 0) delete msg.reactions[emoji];
+            } else {
+                msg.reactions[emoji].push(currentUser.name);
+            }
+
+            saveDb();
+            renderMessages();
+        }
+
+        function startReply(id, senderName) {
+            replyingToId = id;
+            document.getElementById('reply-indicator').style.display = 'flex';
+            document.getElementById('reply-to-name').innerText = senderName;
+            document.getElementById('message-input').focus();
+            renderMessages(); 
+        }
+
+        function cancelReply() {
+            replyingToId = null;
+            document.getElementById('reply-indicator').style.display = 'none';
+            renderMessages(); 
+        }
+
+        function startEdit(id) {
+            const msg = db.messages.find(m => m.id === id);
+            if(msg && msg.sender === currentUser.name) {
+                document.getElementById('message-input').value = msg.text;
+                editingId = id;
+                document.getElementById('message-input').focus();
+            }
+        }
+
+        function pinMessage(id) {
+            db.pinnedMessageId = id;
+            saveDb();
+            renderPinned();
+        }
+
+        function unpinMessage() {
+            db.pinnedMessageId = null;
+            saveDb();
+            renderPinned();
+        }
+
+        function renderPinned() {
+            const container = document.getElementById('pinned-container');
+            if(db.pinnedMessageId) {
+                const msg = db.messages.find(m => m.id === db.pinnedMessageId);
+                if(msg && msg.roomId === currentRoomId) {
+                    document.getElementById('pinned-text').innerHTML = `<b>${msg.sender}</b>: ${msg.text}`;
+                    container.style.display = 'flex';
+                    return;
+                }
+            }
+            container.style.display = 'none';
+        }
+
+        function clearChat() {
+            if(confirm('Очистить все сообщения в текущем разделе? Это действие нельзя отменить.')) {
+                db.messages = db.messages.filter(m => m.roomId !== currentRoomId);
+                db.pinnedMessageId = null;
+                saveDb();
+                renderMessages();
+            }
+        }
+
+        function changeBackground() {
+            const url = document.getElementById('bg-url-input').value.trim();
+            db.background = url; 
+            applyBackground(url);
+            saveDb();
+            closeModal('settings-modal');
+        }
+
+        function showModal(id) { document.getElementById(id).style.display = 'flex'; }
+        function closeModal(id) { 
+            document.getElementById(id).style.display = 'none'; 
+            document.getElementById('room-enter-pass').value = '';
+            document.getElementById('new-room-name').value = '';
+            document.getElementById('new-room-pass').value = '';
+            document.getElementById('is-private').checked = false;
+            document.getElementById('new-room-pass').style.display = 'none';
+        }
+    </script>
+</body>
+</html>
