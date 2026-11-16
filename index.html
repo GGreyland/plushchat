@@ -385,15 +385,25 @@
 
         window.onload = () => {
             initStars();
-            loadDb(); 
-            renderColorPicker();
+            loadDb(); // Окрашивает в фон, сохраненный при прошлом входе
             
+            // Загружаем данные прошлого входа, чтобы автозаполнить страницу входа
+            const lastLoginName = localStorage.getItem('lastChatLoginName') || '';
+            const lastLoginColor = localStorage.getItem('lastChatLoginColor') || null;
+
+            if (lastLoginName) {
+                document.getElementById('username-input').value = lastLoginName;
+            }
+
+            renderColorPicker(lastLoginColor);
+            
+            // Если сессия не была закрыта кнопкой "Выйти", сразу входим
             const savedUser = localStorage.getItem('chatUser');
             if (savedUser) {
                 currentUser = JSON.parse(savedUser);
                 currentUser.isOnline = true;
                 updateUserInDb(currentUser);
-                checkOwnerStatusSync(); // Проверяем, не назначили ли нас владельцем пока мы были оффлайн
+                checkOwnerStatusSync();
                 showApp();
             }
 
@@ -409,24 +419,6 @@
                 if(currentUser) {
                     checkOwnerStatusSync();
                     renderApp();
-                }
-            });
-
-            document.getElementById('username-input').addEventListener('input', (e) => {
-                const typedName = e.target.value.trim().toLowerCase();
-                const existingUser = db.users.find(u => u.name.toLowerCase() === typedName);
-                if(existingUser) {
-                    let colorFound = false;
-                    document.querySelectorAll('.color-dot').forEach(dot => {
-                        if(dot.dataset.color === existingUser.color) {
-                            selectColor(dot, existingUser.color);
-                            colorFound = true;
-                        }
-                    });
-                    if(!colorFound) {
-                        document.getElementById('custom-color').value = existingUser.color;
-                        selectColor(null, existingUser.color);
-                    }
                 }
             });
 
@@ -483,7 +475,6 @@
             saveDb();
         }
 
-        // Проверка синхронизации статуса владельца
         function checkOwnerStatusSync() {
             let dbUser = db.users.find(u => u.name === currentUser.name);
             if (dbUser && dbUser.isOwner !== currentUser.isOwner) {
@@ -505,22 +496,32 @@
             }
         }
 
-        function renderColorPicker() {
+        let selectedColor = colors[0];
+        function renderColorPicker(defaultColor = null) {
             const container = document.getElementById('color-picker');
+            container.innerHTML = '';
+            
+            let colorToSelect = defaultColor || colors[0];
+
             colors.forEach(color => {
                 let dot = document.createElement('div');
                 dot.className = 'color-dot';
                 dot.style.background = color;
-                dot.dataset.color = color; // Сохраняем код цвета в атрибут
+                dot.dataset.color = color;
                 dot.onclick = () => selectColor(dot, color);
                 container.appendChild(dot);
+                
+                if (color === colorToSelect) {
+                    selectColor(dot, color);
+                }
             });
-            if(container.firstChild) selectColor(container.firstChild, colors[0]);
 
-            document.getElementById('custom-color').addEventListener('input', (e) => selectColor(null, e.target.value));
+            if (!colors.includes(colorToSelect) && defaultColor) {
+                document.getElementById('custom-color').value = colorToSelect;
+                selectColor(null, colorToSelect);
+            }
         }
 
-        let selectedColor = colors[0];
         function selectColor(element, color) {
             document.querySelectorAll('.color-dot').forEach(d => d.classList.remove('active'));
             if(element) element.classList.add('active');
@@ -531,12 +532,16 @@
             const name = document.getElementById('username-input').value.trim();
             if(!name) return alert('Введите имя!');
 
+            // Сохраняем имя и цвет в память браузера для следующего выхода
+            localStorage.setItem('lastChatLoginName', name);
+            localStorage.setItem('lastChatLoginColor', selectedColor);
+
             const existing = db.users.find(u => u.name.toLowerCase() === name.toLowerCase());
-            if(existing && !localStorage.getItem('chatUser')) return alert('Это имя уже занято (возможно открыто в другой вкладке).');
 
             currentUser = {
                 name: name,
                 color: selectedColor, 
+                // Восстанавливаем права если пользователь уже был
                 isOwner: existing ? existing.isOwner : (name === OWNER_NAME),
                 isOnline: true,
                 hasAccessTo: existing ? existing.hasAccessTo : ['general']
@@ -550,7 +555,7 @@
         function logout() {
             currentUser.isOnline = false;
             updateUserInDb(currentUser);
-            localStorage.removeItem('chatUser');
+            localStorage.removeItem('chatUser'); // Удаляем сессию, но оставляем историю сообщений (в chatDb)
             location.reload(); 
         }
 
